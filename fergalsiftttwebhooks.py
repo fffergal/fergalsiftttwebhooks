@@ -6,20 +6,29 @@ import os
 import time
 import traceback
 from contextlib import closing
+from typing import TYPE_CHECKING
 from urllib.parse import parse_qs
 from urllib.request import Request, urlopen
 
+if TYPE_CHECKING:
+    from datetime import date
+
+    from _typeshed.wsgi import StartResponse, WSGIEnvironment
+
+# pyright: strict
+
 LOGS_DIR = "logs"
+LOG_FILE_NAME = "fergalsiftttwebhooks.log"
 
 
 class JSONLogFormatter(logging.Formatter):
-
-    def __init__(self, datefmt=None):
+    def __init__(self, datefmt: str | None=None):
         super().__init__(datefmt=datefmt)
 
-    def format(self, record):
+    def format(self, record: logging.LogRecord):
         attributes = {
-            key: value for key, value in vars(record).items()
+            key: value
+            for key, value in vars(record).items()
             if isinstance(value, str | int | float)
         }
         try:
@@ -31,12 +40,11 @@ class JSONLogFormatter(logging.Formatter):
         except Exception:
             pass
         try:
+            assert record.exc_info and record.exc_info[0] is not None
             attributes["exc_type"] = record.exc_info[0].__name__
             attributes["traceback"] = "".join(
                 traceback.format_exception(
-                    record.exc_info[0],
-                    record.exc_info[1],
-                    record.exc_info[2]
+                    record.exc_info[0], record.exc_info[1], record.exc_info[2]
                 )
             )
         except Exception:
@@ -44,11 +52,11 @@ class JSONLogFormatter(logging.Formatter):
         return json.dumps(attributes)
 
 
-def wedding(environ, start_response):
+def wedding(environ: "WSGIEnvironment", start_response: "StartResponse") -> list[bytes]:
     days = days_until(datetime.datetime.today(), datetime.datetime(2020, 10, 10))
     request = Request(
         "https://maker.ifttt.com/trigger/notify/with/key/dnaJW0wSYg5wScT5JZi-_o",
-        f'{{"value1": "{days} days until wedding."}}',
+        bytes(f'{{"value1": "{days} days until wedding."}}', "utf-8"),
         {"Content-type": "application/json"},
     )
     with closing(urlopen(request)) as response:
@@ -57,17 +65,17 @@ def wedding(environ, start_response):
     return lines
 
 
-def debug(environ, start_response):
+def debug(environ: "WSGIEnvironment", start_response: "StartResponse") -> list[bytes]:
     if environ["REQUEST_METHOD"] != "POST":
         start_response("200 OK", [("Content-type", "application/json")])
-        return [json.dumps(parse_qs(environ["QUERY_STRING"]), indent=2)]
+        return [bytes(json.dumps(parse_qs(environ["QUERY_STRING"]), indent=2), "utf-8")]
     with closing(environ["wsgi.input"]) as request_body_file:
         request_body = request_body_file.read(int(environ["CONTENT_LENGTH"]))
     start_response("200 OK", [("Content-type", "text/plain")])
     return [request_body]
 
 
-def dropbox_debug(environ, start_response):
+def dropbox_debug(environ: "WSGIEnvironment", start_response: "StartResponse") -> list[bytes]:
     if environ["REQUEST_METHOD"] != "POST":
         payload = json.dumps(parse_qs(environ["QUERY_STRING"]), indent=2)
     else:
@@ -75,9 +83,7 @@ def dropbox_debug(environ, start_response):
             payload = request_body_file.read(int(environ["CONTENT_LENGTH"]))
     request = Request(
         "https://maker.ifttt.com/trigger/dropbox-debug/with/key/dnaJW0wSYg5wScT5JZi-_o",
-        json.dumps(
-            {"value1": payload}
-        ),
+        bytes(json.dumps({"value1": payload}), "utf-8"),
         {"Content-type": "application/json"},
     )
     with closing(urlopen(request)) as response:
@@ -86,12 +92,12 @@ def dropbox_debug(environ, start_response):
     return lines
 
 
-def dropbox_log_route(environ, start_response):
-    with closing(open(os.path.join(LOGS_DIR, "passenger.log"))) as log_file:
+def dropbox_log_route(environ: "WSGIEnvironment", start_response: "StartResponse") -> list[bytes]:
+    with closing(open(os.path.join(LOGS_DIR, LOG_FILE_NAME))) as log_file:
         log_content = log_file.read()
     request = Request(
         "https://maker.ifttt.com/trigger/dropbox-debug/with/key/dnaJW0wSYg5wScT5JZi-_o",
-        json.dumps({"value1": log_content}),
+        bytes(json.dumps({"value1": log_content}), "utf-8"),
         {"Content-type": "application/json"},
     )
     with closing(urlopen(request)) as response:
@@ -100,10 +106,10 @@ def dropbox_log_route(environ, start_response):
     return lines
 
 
-def days_until_route(environ, start_response):
+def days_until_route(environ: "WSGIEnvironment", start_response: "StartResponse") -> list[bytes]:
     if environ["REQUEST_METHOD"] != "POST":
         start_response("405 Method not allowed", [("Content-type", "text/plain")])
-        return ["POST only please"]
+        return [b"POST only please"]
     with closing(environ["wsgi.input"]) as request_body_file:
         request_body = request_body_file.read(int(environ["CONTENT_LENGTH"]))
     parsed_request = json.loads(request_body)
@@ -115,10 +121,13 @@ def days_until_route(environ, start_response):
     days = days_until(parsed_from_date, parsed_target_date)
     request = Request(
         "https://maker.ifttt.com/trigger/notify/with/key/dnaJW0wSYg5wScT5JZi-_o",
-        json.dumps(
-            {
-                "value1": f"{days} days until {target_label}.",
-            }
+        bytes(
+            json.dumps(
+                {
+                    "value1": f"{days} days until {target_label}.",
+                }
+            ),
+            "utf-8",
         ),
         {"Content-type": "application/json"},
     )
@@ -135,10 +144,10 @@ TRELLO_USERS_TO_NAMES = {
 }
 
 
-def cleaning_from_gcal(environ, start_response):
+def cleaning_from_gcal(environ: "WSGIEnvironment", start_response: "StartResponse") -> list[bytes]:
     if environ["REQUEST_METHOD"] != "POST":
         start_response("405 Method not allowed", [("Content-type", "text/plain")])
-        return ["POST only please"]
+        return [b"POST only please"]
     with closing(environ["wsgi.input"]) as request_body_file:
         request_body = request_body_file.read(int(environ["CONTENT_LENGTH"]))
     parsed_request = json.loads(request_body)
@@ -149,10 +158,13 @@ def cleaning_from_gcal(environ, start_response):
     name = TRELLO_USERS_TO_NAMES[trello_user]
     telegram_request = Request(
         "https://maker.ifttt.com/trigger/telegram_afb/with/key/dnaJW0wSYg5wScT5JZi-_o",
-        json.dumps(
-            {
-                "value1": f"{name}: {title}",
-            }
+        bytes(
+            json.dumps(
+                {
+                    "value1": f"{name}: {title}",
+                }
+            ),
+            "utf-8",
         ),
         {"Content-type": "application/json"},
     )
@@ -160,11 +172,14 @@ def cleaning_from_gcal(environ, start_response):
         lines = list(response.readlines())
     trello_request = Request(
         "https://maker.ifttt.com/trigger/add_cleaning_trello/with/key/dnaJW0wSYg5wScT5JZi-_o",
-        json.dumps(
-            {
-                "value1": f"{title} ({parsed_datetime:%a %d %b})",
-                "value2": trello_user,
-            }
+        bytes(
+            json.dumps(
+                {
+                    "value1": f"{title} ({parsed_datetime:%a %d %b})",
+                    "value2": trello_user,
+                }
+            ),
+            "utf-8",
         ),
         {"Content-type": "application/json"},
     )
@@ -174,7 +189,7 @@ def cleaning_from_gcal(environ, start_response):
     return lines
 
 
-def error_debug_route(environ, start_response):
+def error_debug_route(environ: "WSGIEnvironment", start_response: "StartResponse"):
     raise Exception
 
 
@@ -189,11 +204,11 @@ routes = {
 }
 
 
-def application(environ, start_response):
+def application(environ: "WSGIEnvironment", start_response: "StartResponse"):
     route = routes.get(environ["PATH_INFO"])
     if not route:
         start_response("404 Not found", [("Content-type", "text/plain")])
-        return ["Not found\n", environ["PATH_INFO"]]
+        return [b"Not found\n", bytes(environ["PATH_INFO"], "utf-8")]
     try:
         return route(environ, start_response)
     except Exception:
@@ -203,10 +218,10 @@ def application(environ, start_response):
             logger = logging.getLogger("fergalsiftttwebhooks")
             if not logger.handlers:
                 handler = logging.handlers.TimedRotatingFileHandler(
-                    os.path.join(LOGS_DIR, "passenger.log"),
+                    os.path.join(LOGS_DIR, LOG_FILE_NAME),
                     when="D",
                     interval=1,
-                    utc=True
+                    utc=True,
                 )
                 formatter = JSONLogFormatter()
                 formatter.converter = time.gmtime
@@ -218,13 +233,13 @@ def application(environ, start_response):
         except Exception:
             start_response("500 Server error", [("Content-type", "text/plain")])
             return [
-                "Server error\n",
-                "Problem logging error.\n",
-                traceback.format_exc(),
+                b"Server error\n",
+                b"Problem logging error.\n",
+                bytes(traceback.format_exc(), "utf-8")
             ]
         start_response("500 Server error", [("Content-type", "text/plain")])
-        return ["Server error\n", "Errors logged."]
+        return [b"Server error\n", b"Errors logged."]
 
 
-def days_until(date_from, date_to):
+def days_until(date_from: "date", date_to: "date"):
     return (date_to - date_from).days + 1

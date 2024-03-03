@@ -2,20 +2,20 @@ import json
 import logging
 import threading
 import time
-import urllib2
 import wsgiref.simple_server
 from contextlib import closing
 from datetime import datetime
+from urllib.request import urlopen
 
 import pytest
 
-import passenger_wsgi
+import fergalsiftttwebhooks
 
 
 def test_days_until():
     assert (
-        passenger_wsgi.days_until(datetime(2018, 1, 13, 6, 0), datetime(2018, 1, 15)) ==
-        2
+        fergalsiftttwebhooks.days_until(datetime(2018, 1, 13, 6, 0), datetime(2018, 1, 15))
+        == 2
     )
 
 
@@ -23,7 +23,7 @@ def test_days_until():
 def logger(tmpdir):
     logger = logging.getLogger("testlogger")
     handler = logging.FileHandler(str(tmpdir / "log.txt"))
-    formatter = passenger_wsgi.JSONLogFormatter()
+    formatter = fergalsiftttwebhooks.JSONLogFormatter()
     formatter.converter = time.gmtime
     handler.setFormatter(formatter)
     logger.addHandler(handler)
@@ -42,7 +42,7 @@ def server():
     app_server = wsgiref.simple_server.make_server(
         "127.0.0.1",
         8000,
-        passenger_wsgi.application,
+        fergalsiftttwebhooks.application,
     )
     serve_thread = threading.Thread(target=app_server.serve_forever)
     serve_thread.start()
@@ -55,6 +55,6 @@ def server():
 
 
 def test_debug(server):
-    response = urllib2.urlopen("http://127.0.0.1:8000/v1/debug?hey=yo", None, 1)
+    response = urlopen("http://127.0.0.1:8000/v1/debug?hey=yo", None, 1)
     with closing(response) as response_body:
-        assert json.loads(unicode(response_body.read(), "utf-8")) == {"hey": ["yo"]}
+        assert json.loads(str(response_body.read(), "utf-8")) == {"hey": ["yo"]}

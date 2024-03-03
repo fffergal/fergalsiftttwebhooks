@@ -3,11 +3,19 @@ import signal
 import threading
 import time
 import wsgiref.simple_server
+from typing import TYPE_CHECKING
 
-import passenger_wsgi
+import fergalsiftttwebhooks
+
+if TYPE_CHECKING:
+    import types
+    from collections.abc import Callable
+    from typing import Any
+
+# pyright: strict
 
 
-def stop_serving(app_server, old_sigint_handler, signalnum, frame):
+def stop_serving(app_server: wsgiref.simple_server.WSGIServer, old_sigint_handler: "Callable[[int, types.FrameType | None], Any] | int | signal.Handlers | None", signalnum: "int | signal.Signals", frame: "types.FrameType | None"):
     print("Stopping")
     app_server.shutdown()
     signal.signal(signal.SIGINT, old_sigint_handler)
@@ -17,12 +25,11 @@ def main():
     app_server = wsgiref.simple_server.make_server(
         "127.0.0.1",
         8000,
-        passenger_wsgi.application,
+        fergalsiftttwebhooks.application,
     )
     old_sigint_handler = signal.getsignal(signal.SIGINT)
-    signal.signal(
-        signal.SIGINT, functools.partial(stop_serving, app_server, old_sigint_handler)
-    )
+
+    signal.signal(signal.SIGINT, functools.partial(stop_serving, app_server, old_sigint_handler))
     server_thread = threading.Thread(target=app_server.serve_forever)
     print("Started on port 8000")
     server_thread.start()
