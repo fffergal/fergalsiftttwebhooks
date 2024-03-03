@@ -5,10 +5,9 @@ import logging.handlers
 import os
 import time
 import traceback
-import urllib2
-import urlparse
 from contextlib import closing
-
+from urllib.parse import parse_qs
+from urllib.request import Request, urlopen
 
 LOGS_DIR = "logs"
 
@@ -16,12 +15,12 @@ LOGS_DIR = "logs"
 class JSONLogFormatter(logging.Formatter):
 
     def __init__(self, datefmt=None):
-        super(JSONLogFormatter, self).__init__(datefmt=datefmt)
+        super().__init__(datefmt=datefmt)
 
     def format(self, record):
         attributes = {
             key: value for key, value in vars(record).items()
-            if isinstance(value, (str, int, float))
+            if isinstance(value, str | int | float)
         }
         try:
             attributes["message"] = record.getMessage()
@@ -47,12 +46,12 @@ class JSONLogFormatter(logging.Formatter):
 
 def wedding(environ, start_response):
     days = days_until(datetime.datetime.today(), datetime.datetime(2020, 10, 10))
-    request = urllib2.Request(
+    request = Request(
         "https://maker.ifttt.com/trigger/notify/with/key/dnaJW0wSYg5wScT5JZi-_o",
-        '{{"value1": "{} days until wedding."}}'.format(days),
+        f'{{"value1": "{days} days until wedding."}}',
         {"Content-type": "application/json"},
     )
-    with closing(urllib2.urlopen(request)) as response:
+    with closing(urlopen(request)) as response:
         lines = list(response.readlines())
     start_response("200 OK", [("Content-type", "text/plain")])
     return lines
@@ -61,7 +60,7 @@ def wedding(environ, start_response):
 def debug(environ, start_response):
     if environ["REQUEST_METHOD"] != "POST":
         start_response("200 OK", [("Content-type", "application/json")])
-        return [json.dumps(urlparse.parse_qs(environ["QUERY_STRING"]), indent=2)]
+        return [json.dumps(parse_qs(environ["QUERY_STRING"]), indent=2)]
     with closing(environ["wsgi.input"]) as request_body_file:
         request_body = request_body_file.read(int(environ["CONTENT_LENGTH"]))
     start_response("200 OK", [("Content-type", "text/plain")])
@@ -70,18 +69,18 @@ def debug(environ, start_response):
 
 def dropbox_debug(environ, start_response):
     if environ["REQUEST_METHOD"] != "POST":
-        payload = json.dumps(urlparse.parse_qs(environ["QUERY_STRING"]), indent=2)
+        payload = json.dumps(parse_qs(environ["QUERY_STRING"]), indent=2)
     else:
         with closing(environ["wsgi.input"]) as request_body_file:
             payload = request_body_file.read(int(environ["CONTENT_LENGTH"]))
-    request = urllib2.Request(
+    request = Request(
         "https://maker.ifttt.com/trigger/dropbox-debug/with/key/dnaJW0wSYg5wScT5JZi-_o",
         json.dumps(
             {"value1": payload}
         ),
         {"Content-type": "application/json"},
     )
-    with closing(urllib2.urlopen(request)) as response:
+    with closing(urlopen(request)) as response:
         lines = list(response.readlines())
     start_response("200 OK", [("Content-type", "text/plain")])
     return lines
@@ -90,12 +89,12 @@ def dropbox_debug(environ, start_response):
 def dropbox_log_route(environ, start_response):
     with closing(open(os.path.join(LOGS_DIR, "passenger.log"))) as log_file:
         log_content = log_file.read()
-    request = urllib2.Request(
+    request = Request(
         "https://maker.ifttt.com/trigger/dropbox-debug/with/key/dnaJW0wSYg5wScT5JZi-_o",
         json.dumps({"value1": log_content}),
         {"Content-type": "application/json"},
     )
-    with closing(urllib2.urlopen(request)) as response:
+    with closing(urlopen(request)) as response:
         lines = list(response.readlines())
     start_response("200 OK", [("Content-type", "text/plain")])
     return lines
@@ -113,20 +112,17 @@ def days_until_route(environ, start_response):
     target_label = parsed_request["target_label"]
     parsed_from_date = datetime.datetime.strptime(from_date, "%B %d, %Y at %I:%M%p")
     parsed_target_date = datetime.datetime.strptime(target_date, "%Y-%m-%d")
-    safe_target_label = target_label[:50]
     days = days_until(parsed_from_date, parsed_target_date)
-    request = urllib2.Request(
+    request = Request(
         "https://maker.ifttt.com/trigger/notify/with/key/dnaJW0wSYg5wScT5JZi-_o",
         json.dumps(
             {
-                "value1": "{days} days until {target_label}.".format(
-                    days=days, target_label=target_label
-                ),
+                "value1": f"{days} days until {target_label}.",
             }
         ),
         {"Content-type": "application/json"},
     )
-    with closing(urllib2.urlopen(request)) as response:
+    with closing(urlopen(request)) as response:
         lines = list(response.readlines())
     start_response("200 OK", [("Content-type", "text/plain")])
     return lines
@@ -151,32 +147,28 @@ def cleaning_from_gcal(environ, start_response):
     trello_user = parsed_request["description"]
     parsed_datetime = datetime.datetime.strptime(gcal_datetime, GCAL_DATETIME_FORMAT)
     name = TRELLO_USERS_TO_NAMES[trello_user]
-    telegram_request = urllib2.Request(
+    telegram_request = Request(
         "https://maker.ifttt.com/trigger/telegram_afb/with/key/dnaJW0wSYg5wScT5JZi-_o",
         json.dumps(
             {
-                "value1": "{name}: {title}".format(
-                    name=name, title=title
-                ),
+                "value1": f"{name}: {title}",
             }
         ),
         {"Content-type": "application/json"},
     )
-    with closing(urllib2.urlopen(telegram_request)) as response:
+    with closing(urlopen(telegram_request)) as response:
         lines = list(response.readlines())
-    trello_request = urllib2.Request(
+    trello_request = Request(
         "https://maker.ifttt.com/trigger/add_cleaning_trello/with/key/dnaJW0wSYg5wScT5JZi-_o",
         json.dumps(
             {
-                "value1": "{title} ({parsed_datetime:%a %d %b})".format(
-                    title=title, parsed_datetime=parsed_datetime
-                ),
+                "value1": f"{title} ({parsed_datetime:%a %d %b})",
                 "value2": trello_user,
             }
         ),
         {"Content-type": "application/json"},
     )
-    with closing(urllib2.urlopen(trello_request)) as response:
+    with closing(urlopen(trello_request)) as response:
         lines.extend(response.readlines())
     start_response("200 OK", [("Content-type", "text/plain")])
     return lines
@@ -207,7 +199,7 @@ def application(environ, start_response):
     except Exception:
         try:
             if not os.path.exists(LOGS_DIR):
-                os.makedirs(LOGS_DIR, 0700)
+                os.makedirs(LOGS_DIR, 0o700)
             logger = logging.getLogger("fergalsiftttwebhooks")
             if not logger.handlers:
                 handler = logging.handlers.TimedRotatingFileHandler(

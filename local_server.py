@@ -1,7 +1,7 @@
 import functools
 import signal
-import time
 import threading
+import time
 import wsgiref.simple_server
 
 import passenger_wsgi
@@ -23,7 +23,7 @@ def main():
     signal.signal(
         signal.SIGINT, functools.partial(stop_serving, app_server, old_sigint_handler)
     )
-    server_thread = threading.Thread(target=app_server.serve_forever) 
+    server_thread = threading.Thread(target=app_server.serve_forever)
     print("Started on port 8000")
     server_thread.start()
     while server_thread.is_alive():
