@@ -14,6 +14,10 @@ build/venv-$(PWD_HASH)/bin/tox: build/venv-$(PWD_HASH)
 build/venv-$(PWD_HASH):
 	virtualenv build/venv-$(PWD_HASH)
 
+build/deploy: *.py hooks/*
+	git push pythonanywhere main
+	touch build/deploy
+
 build:
 	mkdir build
 

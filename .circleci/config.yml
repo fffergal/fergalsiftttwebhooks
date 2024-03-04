@@ -3,29 +3,30 @@ version: 2
 jobs:
   test:
     docker:
-      - image: circleci/python:2.7-stretch
+      - image: cimg/python:3.9
     steps:
-      - checkout
-      - restore_cache:
-          paths: build
-          key: v1-build-{{ .Branch }} 
-      - run: make build/test
-      - save_cache:
-          paths: build
-          key: v1-build-{{ .Branch }} 
-  deploy:
-    docker:
-      - image: circleci/python:2.7-stretch
-    steps:
-      - add_ssh_keys:
-          fingerprints:
-            - eb:5e:4b:b0:34:ad:58:bd:00:94:46:3e:ec:e4:70:d1
-      - run: ssh-keyscan -H -t rsa ifttt.bfot.co.uk > ~/.ssh/known_hosts
       - checkout
       - restore_cache:
           paths: build
           key: v1-build-{{ .Branch }}
-      - run: make build/reload
+      - run: make build/test
+      - save_cache:
+          paths: build
+          key: v1-build-{{ .Branch }}
+  deploy:
+    docker:
+      - image: cimg/python:3.9
+    steps:
+      - add_ssh_keys:
+          fingerprints:
+            - d5:50:bd:8e:23:eb:14:3f:cf:15:87:42:0b:bf:e2:60
+      - run: ssh-keyscan -H -t rsa ssh.eu.pythonanywhere.com > ~/.ssh/known_hosts
+      - checkout
+      - restore_cache:
+          paths: build
+          key: v1-build-{{ .Branch }}
+      - run: git remote add pythonanywhere fffergaleu@ssh.eu.pythonanywhere.com:/home/fffergaleu/fergalsiftttwebhooks.git
+      - run: make build/deploy
       - save_cache:
           paths: build
           key: v1-build-{{ .Branch }}
