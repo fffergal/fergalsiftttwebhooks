@@ -20,6 +20,7 @@ jobs:
       - add_ssh_keys:
           fingerprints:
             - d5:50:bd:8e:23:eb:14:3f:cf:15:87:42:0b:bf:e2:60
+      - run: mkdir -p ~/.ssh
       - run: ssh-keyscan -H -t rsa ssh.eu.pythonanywhere.com > ~/.ssh/known_hosts
       - checkout
       - restore_cache:
@@ -38,7 +39,7 @@ workflows:
           filters:
             branches:
               ignore:
-                - master
+                - main
   deploy:
     jobs:
       - deploy:
