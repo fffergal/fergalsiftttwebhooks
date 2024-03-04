@@ -16,7 +16,7 @@
 
 import sys
 
-path = "/home/fffergaleu/path/to/my/app"
+path = "/var/www/fergalsiftttwebhooks"
 if path not in sys.path:
     sys.path.append(path)
 

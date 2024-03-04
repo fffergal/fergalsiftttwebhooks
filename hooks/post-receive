@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+WWW_DIR=/var/www
+WEB_DIR="$WWW_DIR/fergalsiftttwebhooks"
+WSGI_PY="$WWW_DIR/ifttt_bfot_co_uk_wsgi.py"
+mkdir -p "$WEB_DIR"
+GIT_WORK_TREE="$WEB_DIR" git checkout -f main
+rsync -a "$WEB_DIR/hooks" hooks
+rsync -a "$WEB_DIR/ifttt_bfot_co_uk_wsgi.py" "$WSGI_PY"
+touch "$WSGI_PY"
