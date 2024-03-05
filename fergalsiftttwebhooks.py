@@ -1,11 +1,14 @@
+import ast
 import datetime
 import json
 import logging
 import logging.handlers
 import os
+import re
 import time
 import traceback
 from contextlib import closing
+from pathlib import Path
 from typing import TYPE_CHECKING
 from urllib.parse import parse_qs
 from urllib.request import Request, urlopen
@@ -55,7 +58,7 @@ class JSONLogFormatter(logging.Formatter):
 def wedding(environ: "WSGIEnvironment", start_response: "StartResponse") -> list[bytes]:
     days = days_until(datetime.datetime.today(), datetime.datetime(2020, 10, 10))
     request = Request(
-        "https://maker.ifttt.com/trigger/notify/with/key/dnaJW0wSYg5wScT5JZi-_o",
+        f"https://maker.ifttt.com/trigger/notify/with/key/{os.environ['IFTTT_WEBHOOK_KEY']}",
         bytes(f'{{"value1": "{days} days until wedding."}}', "utf-8"),
         {"Content-type": "application/json"},
     )
@@ -84,7 +87,7 @@ def dropbox_debug(
         with closing(environ["wsgi.input"]) as request_body_file:
             payload = request_body_file.read(int(environ["CONTENT_LENGTH"]))
     request = Request(
-        "https://maker.ifttt.com/trigger/dropbox-debug/with/key/dnaJW0wSYg5wScT5JZi-_o",
+        f"https://maker.ifttt.com/trigger/dropbox-debug/with/key/{os.environ['IFTTT_WEBHOOK_KEY']}",
         bytes(json.dumps({"value1": payload}), "utf-8"),
         {"Content-type": "application/json"},
     )
@@ -97,10 +100,9 @@ def dropbox_debug(
 def dropbox_log_route(
     environ: "WSGIEnvironment", start_response: "StartResponse"
 ) -> list[bytes]:
-    with closing(open(os.path.join(LOGS_DIR, LOG_FILE_NAME))) as log_file:
-        log_content = log_file.read()
+    log_content = (Path(LOGS_DIR) / LOG_FILE_NAME).read_text()
     request = Request(
-        "https://maker.ifttt.com/trigger/dropbox-debug/with/key/dnaJW0wSYg5wScT5JZi-_o",
+        f"https://maker.ifttt.com/trigger/dropbox-debug/with/key/{os.environ['IFTTT_WEBHOOK_KEY']}",
         bytes(json.dumps({"value1": log_content}), "utf-8"),
         {"Content-type": "application/json"},
     )
@@ -126,7 +128,7 @@ def days_until_route(
     parsed_target_date = datetime.datetime.strptime(target_date, "%Y-%m-%d")
     days = days_until(parsed_from_date, parsed_target_date)
     request = Request(
-        "https://maker.ifttt.com/trigger/notify/with/key/dnaJW0wSYg5wScT5JZi-_o",
+        f"https://maker.ifttt.com/trigger/notify/with/key/{os.environ['IFTTT_WEBHOOK_KEY']}",
         bytes(
             json.dumps(
                 {
@@ -165,7 +167,7 @@ def cleaning_from_gcal(
     parsed_datetime = datetime.datetime.strptime(gcal_datetime, GCAL_DATETIME_FORMAT)
     name = TRELLO_USERS_TO_NAMES[trello_user]
     telegram_request = Request(
-        "https://maker.ifttt.com/trigger/telegram_afb/with/key/dnaJW0wSYg5wScT5JZi-_o",
+        f"https://maker.ifttt.com/trigger/telegram_afb/with/key/{os.environ['IFTTT_WEBHOOK_KEY']}",
         bytes(
             json.dumps(
                 {
@@ -179,7 +181,7 @@ def cleaning_from_gcal(
     with closing(urlopen(telegram_request)) as response:
         lines = list(response.readlines())
     trello_request = Request(
-        "https://maker.ifttt.com/trigger/add_cleaning_trello/with/key/dnaJW0wSYg5wScT5JZi-_o",
+        f"https://maker.ifttt.com/trigger/add_cleaning_trello/with/key/{os.environ['IFTTT_WEBHOOK_KEY']}",
         bytes(
             json.dumps(
                 {
@@ -221,12 +223,12 @@ def application(environ: "WSGIEnvironment", start_response: "StartResponse"):
         return route(environ, start_response)
     except Exception:
         try:
-            if not os.path.exists(LOGS_DIR):
+            if not Path(LOGS_DIR).exists():
                 os.makedirs(LOGS_DIR, 0o700)
             logger = logging.getLogger("fergalsiftttwebhooks")
             if not logger.handlers:
                 handler = logging.handlers.TimedRotatingFileHandler(
-                    os.path.join(LOGS_DIR, LOG_FILE_NAME),
+                    Path(LOGS_DIR) / LOG_FILE_NAME,
                     when="D",
                     interval=1,
                     utc=True,
@@ -251,3 +253,33 @@ def application(environ: "WSGIEnvironment", start_response: "StartResponse"):
 
 def days_until(date_from: "date", date_to: "date"):
     return (date_to - date_from).days + 1
+
+
+def parse_dot_env_gen(dot_env_content: str):
+    for i, line in enumerate(dot_env_content.splitlines()):
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        match = re.match(r"^export ([A-Z0-9_]+)=(.+)$", line)
+        if not match:
+            raise ValueError(f"Invalid line in dot env file {i}: {line}")
+        try:
+            value = ast.literal_eval(match[2])
+            if not isinstance(value, str):
+                value = match[2]
+        except Exception:
+            value = match[2]
+        yield (match[1], value)
+
+
+def parse_dot_env(dot_env_content: str):
+    r"""
+    Parse the content of a dot env file into a dict.
+
+    The format is quite strict. Empty lines and lines starting with # are ignored. Lines
+    must start with "export " and variable names must be all caps, numbers, and
+    underscores. All values will be str because env vars can only be str. To make more
+    complex str you can use a str literal (e.g. wrapped with quotes and with \n for new
+    lines).
+    """
+    return dict(parse_dot_env_gen(dot_env_content))

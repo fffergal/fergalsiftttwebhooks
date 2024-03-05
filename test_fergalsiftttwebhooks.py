@@ -60,3 +60,28 @@ def test_debug(server):
     response = urlopen("http://127.0.0.1:8000/v1/debug?hey=yo", None, 1)
     with closing(response) as response_body:
         assert json.loads(str(response_body.read(), "utf-8")) == {"hey": ["yo"]}
+
+
+def test_parse_dot_env_simple():
+    assert fergalsiftttwebhooks.parse_dot_env("export TEST=yo") == {"TEST": "yo"}
+
+
+def test_parse_dot_env_no_export():
+    with pytest.raises(ValueError):
+        fergalsiftttwebhooks.parse_dot_env("TEST=yo")
+
+
+def test_parse_dot_env_literal_int():
+    assert fergalsiftttwebhooks.parse_dot_env("export TEST=1") == {"TEST": "1"}
+
+
+def test_parse_dot_env_literal_str():
+    assert fergalsiftttwebhooks.parse_dot_env('export TEST="hey\\nyo"') == {
+        "TEST": "hey\nyo"
+    }
+
+
+def test_parse_dot_env_comment():
+    assert fergalsiftttwebhooks.parse_dot_env("# comment\nexport TEST=yo") == {
+        "TEST": "yo"
+    }

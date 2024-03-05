@@ -14,10 +14,23 @@
 # Then come back here and import your application object as per the
 # instructions below.
 
+import os
 import sys
+from pathlib import Path
 
 path = "/var/www/fergalsiftttwebhooks"
 if path not in sys.path:
     sys.path.append(path)
 
-from fergalsiftttwebhooks import application  # noqa
+import fergalsiftttwebhooks  # noqa: E402
+
+try:
+    os.environ.update(
+        fergalsiftttwebhooks.parse_dot_env(
+            (Path(fergalsiftttwebhooks.__file__).parent / ".env").read_text()
+        )
+    )
+except Exception:
+    pass
+
+application = fergalsiftttwebhooks.application
