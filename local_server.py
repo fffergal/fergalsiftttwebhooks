@@ -15,7 +15,12 @@ if TYPE_CHECKING:
 # pyright: strict
 
 
-def stop_serving(app_server: wsgiref.simple_server.WSGIServer, old_sigint_handler: "Callable[[int, types.FrameType | None], Any] | int | signal.Handlers | None", signalnum: "int | signal.Signals", frame: "types.FrameType | None"):
+def stop_serving(
+    app_server: wsgiref.simple_server.WSGIServer,
+    old_sigint_handler: "Callable[[int, types.FrameType | None], Any] | int | signal.Handlers | None",
+    signalnum: "int | signal.Signals",
+    frame: "types.FrameType | None",
+):
     print("Stopping")
     app_server.shutdown()
     signal.signal(signal.SIGINT, old_sigint_handler)
@@ -29,7 +34,9 @@ def main():
     )
     old_sigint_handler = signal.getsignal(signal.SIGINT)
 
-    signal.signal(signal.SIGINT, functools.partial(stop_serving, app_server, old_sigint_handler))
+    signal.signal(
+        signal.SIGINT, functools.partial(stop_serving, app_server, old_sigint_handler)
+    )
     server_thread = threading.Thread(target=app_server.serve_forever)
     print("Started on port 8000")
     server_thread.start()

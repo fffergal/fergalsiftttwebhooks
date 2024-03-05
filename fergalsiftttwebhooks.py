@@ -22,7 +22,7 @@ LOG_FILE_NAME = "fergalsiftttwebhooks.log"
 
 
 class JSONLogFormatter(logging.Formatter):
-    def __init__(self, datefmt: str | None=None):
+    def __init__(self, datefmt: str | None = None):
         super().__init__(datefmt=datefmt)
 
     def format(self, record: logging.LogRecord):
@@ -75,7 +75,9 @@ def debug(environ: "WSGIEnvironment", start_response: "StartResponse") -> list[b
     return [request_body]
 
 
-def dropbox_debug(environ: "WSGIEnvironment", start_response: "StartResponse") -> list[bytes]:
+def dropbox_debug(
+    environ: "WSGIEnvironment", start_response: "StartResponse"
+) -> list[bytes]:
     if environ["REQUEST_METHOD"] != "POST":
         payload = json.dumps(parse_qs(environ["QUERY_STRING"]), indent=2)
     else:
@@ -92,7 +94,9 @@ def dropbox_debug(environ: "WSGIEnvironment", start_response: "StartResponse") -
     return lines
 
 
-def dropbox_log_route(environ: "WSGIEnvironment", start_response: "StartResponse") -> list[bytes]:
+def dropbox_log_route(
+    environ: "WSGIEnvironment", start_response: "StartResponse"
+) -> list[bytes]:
     with closing(open(os.path.join(LOGS_DIR, LOG_FILE_NAME))) as log_file:
         log_content = log_file.read()
     request = Request(
@@ -106,7 +110,9 @@ def dropbox_log_route(environ: "WSGIEnvironment", start_response: "StartResponse
     return lines
 
 
-def days_until_route(environ: "WSGIEnvironment", start_response: "StartResponse") -> list[bytes]:
+def days_until_route(
+    environ: "WSGIEnvironment", start_response: "StartResponse"
+) -> list[bytes]:
     if environ["REQUEST_METHOD"] != "POST":
         start_response("405 Method not allowed", [("Content-type", "text/plain")])
         return [b"POST only please"]
@@ -144,7 +150,9 @@ TRELLO_USERS_TO_NAMES = {
 }
 
 
-def cleaning_from_gcal(environ: "WSGIEnvironment", start_response: "StartResponse") -> list[bytes]:
+def cleaning_from_gcal(
+    environ: "WSGIEnvironment", start_response: "StartResponse"
+) -> list[bytes]:
     if environ["REQUEST_METHOD"] != "POST":
         start_response("405 Method not allowed", [("Content-type", "text/plain")])
         return [b"POST only please"]
@@ -235,7 +243,7 @@ def application(environ: "WSGIEnvironment", start_response: "StartResponse"):
             return [
                 b"Server error\n",
                 b"Problem logging error.\n",
-                bytes(traceback.format_exc(), "utf-8")
+                bytes(traceback.format_exc(), "utf-8"),
             ]
         start_response("500 Server error", [("Content-type", "text/plain")])
         return [b"Server error\n", b"Errors logged."]

@@ -14,7 +14,9 @@ import fergalsiftttwebhooks
 
 def test_days_until():
     assert (
-        fergalsiftttwebhooks.days_until(datetime(2018, 1, 13, 6, 0), datetime(2018, 1, 15))
+        fergalsiftttwebhooks.days_until(
+            datetime(2018, 1, 13, 6, 0), datetime(2018, 1, 15)
+        )
         == 2
     )
 
