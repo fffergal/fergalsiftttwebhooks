@@ -1,8 +1,10 @@
 import functools
+import os
 import signal
 import threading
 import time
 import wsgiref.simple_server
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import fergalsiftttwebhooks
@@ -27,6 +29,14 @@ def stop_serving(
 
 
 def main():
+    try:
+        os.environ.update(
+            fergalsiftttwebhooks.parse_dot_env(
+                (Path(fergalsiftttwebhooks.__file__).parent / ".env").read_text()
+            )
+        )
+    except Exception:
+        pass
     app_server = wsgiref.simple_server.make_server(
         "127.0.0.1",
         8000,

@@ -1,35 +1,37 @@
 ---
 version: 2
 jobs:
-  test:
-    docker:
-      - image: cimg/python:3.10
-    steps:
-      - checkout
-      - restore_cache:
-          paths: build
-          key: v1-build-{{ .Branch }}
-      - run: make build/test
-      - save_cache:
-          paths: build
-          key: v1-build-{{ .Branch }}
-  lint:
+  lint-test:
     docker:
       - image: cimg/python:3.10
     steps:
       - checkout
       - restore_cache:
           keys:
-            - v1-pre-commit-{{ .Branch }}
-            - v1-pip-cache-{{ .Branch }}
+            - v1-build-{{ .Branch }}
+            - v1-build-
+      - restore_cache:
+          keys:
+            - v1-pip-{{ .Branch }}
+            - v1-pip-
+      - restore_cache:
+          keys:
+            - v1-precommit-{{ .Branch }}
+            - v1-precommit-
       - run: pip install -r dev-requirements.txt
       - run: pre-commit run -a
+      - run: make build/test
+      - save_cache:
+          paths:
+            - build
+          key: v1-build-{{ .Branch }}
+      - save_cache:
+          paths:
+            - ~/.cache/pip
+          key: v1-pip-{{ .Branch }}
       - save_cache:
           paths: ~/.cache/pre-commit
-          key: v1-pre-commit-{{ .Branch }}
-      - save_cache:
-          paths: ~/.cache/pip
-          key: v1-pip-cache-{{ .Branch }}
+          key: v1-precommit-{{ .Branch }}
   deploy:
     docker:
       - image: cimg/python:3.10
@@ -42,30 +44,24 @@ jobs:
       - checkout
       - restore_cache:
           paths: build
-          key: v1-build-{{ .Branch }}
+          keys:
+            - v1-build-{{ .Branch }}
+            - v1-build-
       - run: git remote add pythonanywhere fffergaleu@ssh.eu.pythonanywhere.com:/home/fffergaleu/fergalsiftttwebhooks.git
       - run: make build/deploy
       - save_cache:
-          paths: build
+          paths:
+            - build
           key: v1-build-{{ .Branch }}
 workflows:
   version: 2
-  test-lint:
+  lint-test-deploy:
     jobs:
-      - test:
-          filters:
-            branches:
-              ignore:
-                - main
-      - lint:
-          filters:
-            branches:
-              ignore:
-                - main
-  deploy:
-    jobs:
+      - lint-test
       - deploy:
           filters:
             branches:
               only:
                 - main
+          requires:
+            - lint-test
