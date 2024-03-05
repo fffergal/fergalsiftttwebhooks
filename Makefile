@@ -1,7 +1,7 @@
 # virtualenvs have hard coded absolute paths in them. Use a hash of pwd so you
 # can run both make and circleci local execute, which has the project in a
 # different path in the container. tox.ini uses it too so export.
-PWD_HASH := $(shell bash -c 'pwd | $(shell command -v md5 md5sum | head -n 1) | awk '"'"'{print $$1}'"'"'')
+PWD_HASH := $(shell bash -c 'pwd | $$(command -v md5 md5sum | head -n 1) | awk '"'"'{print $$1}'"'"'')
 export PWD_HASH
 
 build/test: test_fergalsiftttwebhooks.py fergalsiftttwebhooks.py build/venv-$(PWD_HASH)/bin/tox
