@@ -19,3 +19,10 @@ repos:
       - id: pyright
         additional_dependencies:
           - pytest==8.0.2
+  - repo: https://github.com/jazzband/pip-tools
+    rev: 7.4.0
+    hooks:
+      - id: pip-compile
+        name: pip-compile dev-requirements.in
+        args: [dev-requirements.in]
+        files: ^dev-requirements\.(in|txt)$
