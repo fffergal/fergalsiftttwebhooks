@@ -24,5 +24,6 @@ repos:
     hooks:
       - id: pip-compile
         name: pip-compile dev-requirements.in
+        entry: env CUSTOM_COMPILE_COMMAND="make dev-requirements.txt" pip-compile
         args: [dev-requirements.in]
         files: ^dev-requirements\.(in|txt)$

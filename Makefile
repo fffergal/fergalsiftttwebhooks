@@ -24,4 +24,7 @@ build:
 clean:
 	git clean -f -X -d
 
+*-requirements.txt: %.txt: %.in
+	CUSTOM_COMPILE_COMMAND="make $<" pre-commit $<
+
 .PHONY: clean
