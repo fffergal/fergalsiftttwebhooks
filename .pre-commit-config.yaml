@@ -27,3 +27,8 @@ repos:
         entry: env CUSTOM_COMPILE_COMMAND="make dev-requirements.txt" pip-compile
         args: [dev-requirements.in]
         files: ^dev-requirements\.(in|txt)$
+
+ci:
+  skip:
+    - pyright
+    - pip-compile
