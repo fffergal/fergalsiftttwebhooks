@@ -27,6 +27,18 @@ repos:
         entry: env CUSTOM_COMPILE_COMMAND="make dev-requirements.txt" pip-compile
         args: [dev-requirements.in]
         files: ^dev-requirements\.(in|txt)$
+  - repo: local
+    hooks:
+      - id: check-additional-dependencies
+        name: >-
+            check additional dependencies for pre-commit hooks are represented in
+            requirements files
+        language: python
+        entry: python check_additional_deps.py
+        files: \.pre-commit-config\.yaml
+        pass_filenames: false
+        additional_dependencies:
+            - pyyaml==6.0.1
 
 ci:
   skip:
