@@ -3,3 +3,4 @@ build
 .tox*
 logs/
 .env
+/.ropeproject/
