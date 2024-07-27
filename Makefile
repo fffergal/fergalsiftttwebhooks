@@ -25,6 +25,6 @@ clean:
 	git clean -f -X -d
 
 *-requirements.txt: %.txt: %.in
-	CUSTOM_COMPILE_COMMAND="make $<" pre-commit $<
+	CUSTOM_COMPILE_COMMAND="make $@" pip-compile $<
 
 .PHONY: clean
