@@ -1,6 +1,7 @@
 import functools
 import os
 import signal
+import sys
 import threading
 import time
 import wsgiref.simple_server
@@ -28,7 +29,7 @@ def stop_serving(
     signal.signal(signal.SIGINT, old_sigint_handler)
 
 
-def main():
+def main(argv: list[str]):
     try:
         os.environ.update(
             fergalsiftttwebhooks.parse_dot_env(
@@ -37,9 +38,13 @@ def main():
         )
     except Exception:
         pass
+    if argv:
+        port = int(argv[0])
+    else:
+        port = 8000
     app_server = wsgiref.simple_server.make_server(
         "127.0.0.1",
-        8000,
+        port,
         fergalsiftttwebhooks.application,
     )
     old_sigint_handler = signal.getsignal(signal.SIGINT)
@@ -48,7 +53,7 @@ def main():
         signal.SIGINT, functools.partial(stop_serving, app_server, old_sigint_handler)
     )
     server_thread = threading.Thread(target=app_server.serve_forever)
-    print("Started on port 8000")
+    print(f"Started on port {port}")
     server_thread.start()
     while server_thread.is_alive():
         time.sleep(0.4)
@@ -57,4 +62,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])
