@@ -40,13 +40,13 @@ pyproject-hooks==1.0.0
     # via
     #   build
     #   pip-tools
-pyright==1.1.365
+pyright==1.1.379
     # via -r dev-requirements.in
 pytest==8.0.2
     # via -r dev-requirements.in
 pyyaml==6.0.1
     # via pre-commit
-ruff==0.4.7
+ruff==0.6.4
     # via -r dev-requirements.in
 tomli==2.0.1
     # via
