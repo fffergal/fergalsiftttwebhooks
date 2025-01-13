@@ -54,7 +54,7 @@ tomli==2.0.1
     #   pip-tools
     #   pyproject-hooks
     #   pytest
-virtualenv==20.25.1
+virtualenv==20.26.6
     # via pre-commit
 wheel==0.42.0
     # via pip-tools
